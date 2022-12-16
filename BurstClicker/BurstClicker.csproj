@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <Version>0.1.0</Version>
+    <Authors>koturn</Authors>
+    <Description>An application for rapid firing click.</Description>
+    <Copyright>Copyright (C) 2022 koturn All Rights Reserverd.</Copyright>
+    <PackageProjectUrl>https://github.com/koturn/BurstClicker</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/koturn/BurstClicker</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
