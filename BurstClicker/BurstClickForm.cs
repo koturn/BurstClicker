@@ -126,6 +126,8 @@ namespace BurstClicker
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
                 Text = "BurstClicker: Active";
+                TopMost = true;
+                TopMost = false;
             }
         }
 
