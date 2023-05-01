@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +20,10 @@ namespace BurstClicker
         private const int WM_HOTKEY = 0x0312;
 
         /// <summary>
+        /// A trigger key.
+        /// </summary>
+        private Keys _hotKey = Keys.F11;
+        /// <summary>
         /// ID of <see cref="NativeMethods.RegisterHotKey(IntPtr, int, ModifierKey, Keys)"/>.
         /// </summary>
         private int _id = -1;
@@ -37,6 +42,7 @@ namespace BurstClicker
         public BurstClickForm()
         {
             InitializeComponent();
+            _comboBoxHotKey.SelectedIndex = 9;
         }
 
         /// <summary>
@@ -63,20 +69,30 @@ namespace BurstClicker
         {
             if (_task != null)
             {
+                _labelStatus.Text = "Stopping...";
+                _labelStatus.ForeColor = SystemColors.ControlText;
+                Text = "BurstClicker: Stopping...";
                 if (_cts != null)
                 {
                     _cts.Cancel();
                 }
                 _task.Wait();
                 _task = null;
+                _labelStatus.Text = "Inactive";
+                _labelStatus.ForeColor = SystemColors.ControlText;
                 Text = "BurstClicker: Inactive";
             }
             else
             {
+                var framerate = _numericUpDownFramerate.Value;
                 _task = Task.Factory.StartNew(
                     () =>
                     {
                         var cts = _cts;
+                        if (cts == null)
+                        {
+                            return;
+                        }
                         var inputDown = new Input()
                         {
                             Type = InputType.Mouse,
@@ -110,13 +126,18 @@ namespace BurstClicker
                             }
                         };
 
+                        var intervalMs = (int)(1000.0 / (double)framerate);
                         while (true)
                         {
                             InputUtil.SendInput(ref inputDown);
-                            Thread.Sleep(16);
+                            Thread.Sleep(intervalMs);
+                            if (cts.IsCancellationRequested)
+                            {
+                                break;
+                            }
                             InputUtil.SendInput(ref inputUp);
-                            Thread.Sleep(16);
-                            if (cts != null && cts.IsCancellationRequested)
+                            Thread.Sleep(intervalMs);
+                            if (cts.IsCancellationRequested)
                             {
                                 break;
                             }
@@ -125,6 +146,8 @@ namespace BurstClicker
                     (_cts = new CancellationTokenSource()).Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
+                _labelStatus.Text = "Active";
+                _labelStatus.ForeColor = Color.Red;
                 Text = "BurstClicker: Active";
                 TopMost = true;
                 TopMost = false;
@@ -138,13 +161,10 @@ namespace BurstClicker
         /// <param name="e">An object that contains no event data.</param>
         private void BurstClickForm_Load(object sender, EventArgs e)
         {
-            for (int i = 0x0000; i <= 0xbfff; i++)
+            var id = RegisterHotKey(Handle, ModifierKey.None, _hotKey);
+            if (id != -1)
             {
-                if (NativeMethods.RegisterHotKey(Handle, i, ModifierKey.None, Keys.F11))
-                {
-                    _id = i;
-                    break;
-                }
+                _id = id;
             }
         }
 
@@ -155,8 +175,62 @@ namespace BurstClicker
         /// <param name="e">An object that contains no event data.</param>
         private void BurstClickForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            NativeMethods.UnregisterHotKey(Handle, _id);
+            UnregisterHotKey(Handle, _id);
         }
+
+        /// <summary>
+        /// Callback method when selected index of <see cref="_comboBoxHotKey"/> is changed.
+        /// </summary>
+        /// <param name="sender"><see cref="_comboBoxHotKey"/>.</param>
+        /// <param name="e">A value which has no event data.</param>
+        private void ComboBoxHotKey_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (!IsHandleCreated)
+            {
+                return;
+            }
+
+            var hotKey = Enum.Parse<Keys>((string)_comboBoxHotKey.SelectedItem);
+
+            UnregisterHotKey(Handle, _id);
+            var id = RegisterHotKey(Handle, ModifierKey.None, hotKey);
+            if (id != -1)
+            {
+                _hotKey = hotKey;
+                _id = id;
+            }
+        }
+
+
+        /// <summary>
+        /// Defines a system-wide hot key.
+        /// </summary>
+        /// <param name="handle">A handle to the window that will receive <see cref="WM_HOTKEY"/> messages generated by the hot key.</param>
+        /// <param name="modKey">The keys that must be pressed in combination with the key specified by the uVirtKey parameter in order to generate the <see cref="WM_HOTKEY"/> message.</param>
+        /// <param name="key">The virtual-key code of the hot key. See Virtual Key Codes.</param>
+        /// <returns>-1 when failed to register hotkey, otherwise registered hotkey ID.</returns>
+        private static int RegisterHotKey(IntPtr handle, ModifierKey modKey, Keys key)
+        {
+            for (int i = 0x0000; i <= 0xbfff; i++)
+            {
+                if (NativeMethods.RegisterHotKey(handle, i, modKey, key))
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Frees a hot key previously registered by the calling thread.
+        /// </summary>
+        /// <param name="handle">A handle to the window associated with the hot key to be freed.</param>
+        /// <param name="id">The identifier of the hot key to be freed.</param>
+        private static void UnregisterHotKey(IntPtr handle, int id)
+        {
+            NativeMethods.UnregisterHotKey(handle, id);
+        }
+
 
         /// <summary>
         /// Provides native methods.
