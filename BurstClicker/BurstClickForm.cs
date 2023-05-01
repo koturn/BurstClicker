@@ -138,7 +138,7 @@ namespace BurstClicker
         /// <param name="e">An object that contains no event data.</param>
         private void BurstClickForm_Load(object sender, EventArgs e)
         {
-            for (int i = 0x0001; i <= 0xbfff; i++)
+            for (int i = 0x0000; i <= 0xbfff; i++)
             {
                 if (NativeMethods.RegisterHotKey(Handle, i, ModifierKey.None, Keys.F11))
                 {
